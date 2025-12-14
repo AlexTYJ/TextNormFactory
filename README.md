@@ -1,17 +1,62 @@
 # TextNormFactory
 
-TextNormFactory 面向多语种 ASR/WER 评测，依次执行 dataset 模块、language 模块和 `main.final_clean()`。
+> **仅供内部测试，未经许可不得对外使用!!!!!!!!!!!!!**
 
-本仓库仅供内部测试，未经许可不得对外使用。
+TextNormFactory 面向多语种 ASR/WER 评测，执行顺序固定为：
 
-## 使用
-
-```python
-from text_norm.main import get_normalizer
-
-normalize = get_normalizer(language="ARE", dataset="magicdata")
-print(normalize(" [breath] الله يسلمك، كذلك ما أنسى # أأأ حسن."))
 ```
+原始文本 → dataset 模块 → language 模块 → main.final_clean()
+```
+
+## 目录结构
+
+```text
+TextNormFactory/
+├── main.py          # 统一入口与执行顺序控制
+├── dataset/         # 各数据集的标注/噪声规则
+│   ├── magicdata.py
+│   └── dataocean.py
+└── language/        # 各语言的文本规范化规则
+    ├── ARE.py
+    ├── IRQ.py
+    └── JPN.py
+```
+
+## 使用方法
+
+1. **导入接口**（在仓库根目录运行脚本时最直接）
+   ```python
+   from main import get_normalizer
+   ```
+2. **获取 `normalize` 函数**
+   ```python
+   normalize = get_normalizer(
+       language="ARE",      # 三字母语言代码（必须大写）
+       dataset="magicdata", # 数据集名称（可选，小写）
+   )
+   ```
+3. **执行文本规范化**
+   ```python
+   text = normalize("原始转写文本")
+   ```
+
+### 参数说明
+
+- **language**：三字母大写语言代码（如 ARE、IRQ、JPN），对应 `language/{LANG}.py`。
+- **dataset（可选）**：小写字符串（如 magicdata、dataocean），对应 `dataset/{dataset}.py`。若缺省则跳过数据集级规范化。
+
+### 规范化执行顺序
+
+1. 原始文本  
+2. `dataset.normalize()`（若指定 dataset）  
+3. `language.normalize()`  
+4. `final_clean()`（删除标点 + 压缩空格）
+
+### 各阶段职责
+
+- **dataset 层**：处理数据集特有噪声标签、声学事件、填充词等；可能依赖原始符号（如 `[]`、`+`、`#`）；不删除标点、不压缩空格。
+- **language 层**：处理语言相关规则（书写系统、语言习惯等）；不关心数据集标注格式；不删除标点。
+- **final_clean（最后一步）**：删除所有 Unicode 标点与符号字符，将连续空白压缩为单个空格，确保最终输出格式一致。
 
 ## 支持语言
 
