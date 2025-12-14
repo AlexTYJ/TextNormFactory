@@ -89,14 +89,14 @@ def get_normalizer(
 
     # 加载语言规范化函数
     language_normalize = _load_normalizer(
-        f"text_norm.language.{language}"
+        f"language.{language}"
     )
 
     # 如果指定了数据集，则加载对应的 dataset 规范化函数
     dataset_normalize = None
     if dataset is not None:
         dataset_normalize = _load_normalizer(
-            f"text_norm.dataset.{dataset.lower()}"
+            f"dataset.{dataset.lower()}"
         )
 
     def normalize(text: str) -> str:

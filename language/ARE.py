@@ -1,6 +1,6 @@
 import regex as re
 
-=
+
 def normalize(text: str) -> str:
     """
     规范化阿拉伯语文本（阿联酋方言）：
