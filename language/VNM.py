@@ -37,10 +37,14 @@ def _remove_asr_tags(text: str) -> str:
 
 def _remove_punctuation(text: str) -> str:
     """
-    旧版用于移除标点；现在标点已在 ALL.py 统一处理，
-    这里只做额外字符清理（如将下划线视作空格）。
+    移除标点符号。
+    保留：Unicode 字母、数字、空格及特殊符号 (+)。
     """
-    return text.replace("_", " ")
+    # 保留 \w (含越南语字母), \s (空格) 和 + (保留 C++, K+ 等)
+    text = re.sub(r"[^\w\s\+]", " ", text)
+    # 下划线视为空格处理
+    text = text.replace("_", " ")
+    return text
 
 
 def normalize(text: str) -> str:
@@ -52,7 +56,7 @@ def normalize(text: str) -> str:
     2. 移除 ASR 噪音标记
     3. Underthesea 文本标准化 (声调/拼写)
     4. 数字转文本
-    5. 额外字符清理并转小写（标点由 ALL.py 统一删除）
+    5. 移除标点并转小写
     """
     if not text:
         return ""
@@ -91,29 +95,29 @@ if __name__ == "__main__":
     # --- 综合测试用例 ---
 
     test_cases = [
-        # A 组：声调与拼写（新旧风格统一、特殊地名）
+        # Group A: 声调与拼写 (新旧风格统一, 特殊地名)
         ("A01", "Hoà bình, Thuỷ tinh, Qui Nhơn, Đắk Lắk", "hòa bình thủy tinh quy nhơn đắk lắk"),
-        # B 组：编码与字符（NFD→NFC、特殊元音、全角字符）
+        # Group B: 编码与字符 (NFD转NFC, 特殊元音, 全角字符)
         ("B01", "Tiê\u0301ng Viê\u0323t (NFD), Ưu đãi, ＡＢＣ", "tiếng việt ưu đãi abc"),
-        # C 组：复杂数字与单位（小数、日期、IP、混合时间）
+        # Group C: 复杂数字与单位 (小数, 日期, IP, 混合时间)
         (
             "C01",
             "1,000,000; 3.14; 20/11/2024; 192.168.1.1; $50; 8h30p",
             "một không không không không không không ba mười bốn hai mươi mười một hai nghìn không trăm hai mươi bốn một chín hai một sáu tám một một năm mươi tám h ba mươi p",
         ),
-        # D 组：ASR 噪声与标签（嵌套/未闭合/特殊标记）
+        # Group D: ASR噪声与标签 (嵌套/未闭合/特殊标记)
         ("D01", "Hello [laugh] (noise) <unk> {breath} ++garbage++ <silence>...", "hello"),
-        # E 组：标点与特殊符号（邮箱、标签、连字符）
+        # Group E: 标点与特殊符号 (邮箱, Hashtag, 连字符)
         ("E01", "user@email.com #hashtag Wi-fi_Zone A/B", "user email com hashtag wi fi zone a b"),
-        # F 组：外来词（保留 F/J/Z/W 等非越南语字母）
+        # Group F: 外来词 (保留非越南语字母 F/J/Z/W)
         ("F01", "Vietnam Airlines, YouTube, Zalo, Jeans", "vietnam airlines youtube zalo jeans"),
-        # G 组：边缘情况（混合格式、换行、零宽字符）
+        # Group G: 边缘情况 (混合格式, 换行, 零宽字符)
         ("G01", "123!!![laugh]\nLine2\tTab\u200bZero", "một trăm hai mươi ba line2 tab zero"),
-        # H 组：误判防御（防止粘连并保留 +、C++ 等）
+        # Group H: 误判防御 (防粘连, 保留特殊符号 +, C++)
         ("H01", "4G LTE, F0, 1A, C++, K+, Vitamin 3B", "bốn g lte f không một a c + + k + vitamin ba b"),
-        # I 组：科技与数学（化学式、平方、等式、版本号）
+        # Group I: 科技与数学 (化学式, 平方, 等式, 版本号)
         ("I01", "H2O, CO2, m2, 1 + 1 = 2, v1.0.0", "h hai o co hai m hai một + một hai v một không không"),
-        # J 组：混合语种（Code-switching）
+        # Group J: 混合语种 (Code-switching)
         ("J01", "Sale 50%, Check mail, Log in", "sale năm mươi check mail log in"),
     ]
 

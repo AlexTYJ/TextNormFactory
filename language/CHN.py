@@ -1,16 +1,44 @@
 import re
+import string
 
-digit_map_chn = {
-    "0": "零", "1": "一", "2": "二", "3": "三", "4": "四",
-    "5": "五", "6": "六", "7": "七", "8": "八", "9": "九",
+# 各类 Unicode 标点
+PUNCT_REGEX = re.compile(
+    rf"[{re.escape(string.punctuation)}]"
+    r"|[\u3000-\u303F]"
+    r"|[\u2000-\u206F]"
+    r"|[\uFF00-\uFFEF]"
+    r"|[\uFE30-\uFE4F]"
+    r"|[\u2E00-\u2E7F]"
+)
+
+# 中文数字 → 阿拉伯数字 映射
+digit_map_chn_to_arabic = {
+    "零": "0",
+    "一": "1",
+    "二": "2",
+    "三": "3",
+    "四": "4",
+    "五": "5",
+    "六": "6",
+    "七": "7",
+    "八": "8",
+    "九": "9",
 }
 
-DIGIT_REGEX = re.compile(r"[0-9]")
+# 只匹配“单个中文数字字符”
+CHN_DIGIT_REGEX = re.compile(r"[零一二三四五六七八九]")
 
 def normalize(text: str) -> str:
+    # 去首尾空白
     text = text.strip()
 
-    # 阿拉伯数字 → 中文数字
-    text = DIGIT_REGEX.sub(lambda m: digit_map_chn[m.group(0)], text)
+    # 去标点
+    text = PUNCT_REGEX.sub("", text)
+
+    # 中文数字 → 阿拉伯数字
+    text = CHN_DIGIT_REGEX.sub(
+        lambda m: digit_map_chn_to_arabic[m.group(0)],
+        text
+    )
 
     return text

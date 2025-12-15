@@ -3,55 +3,59 @@ import unicodedata
 
 def normalize(text: str) -> str:
     """
-    泰语 CER 评测使用的完整规范化流程：
-    - Unicode NFC 规整（确保声调符号顺序正确）。
-    - 删除括号内的噪声标注（[laugh]、(noise) 等）。
-    - 移除零宽字符。
-    - 仅删除符号字符 '#'（不删除其后文本）。
-    - 转换英文数字为泰语数字。
-    - 删除泰文范围外的字符（相当于去标点/空格）。
-    - 最后再次 NFC，保证组合顺序稳定。
+    Most complete Thai normalization for CER:
+    - Unicode NFC normalization (critical for Thai tone/vowel combining order)
+    - Remove bracketed content [laugh], (noise)
+    - Remove zero-width characters
+    - Remove only '#' symbol (not following content)
+    - Remove punctuation
+    - Convert English digits to Thai digits
+    - Remove English/Chinese punctuations
+    - Remove spaces (Thai doesn't use them for CER)
+    - Keep only Thai characters + Thai digits
+    - Final char-level spacing for CER
     """
-    # 英文数字 → 泰文数字
+
+    # Thai digits → ASCII digits (012345)
     EN2TH_DIGITS = str.maketrans({
-        "0": "๐",
-        "1": "๑",
-        "2": "๒",
-        "3": "๓",
-        "4": "๔",
-        "5": "๕",
-        "6": "๖",
-        "7": "๗",
-        "8": "๘",
-        "9": "๙",
+        "๐": "0",
+        "๑": "1",
+        "๒": "2",
+        "๓": "3",
+        "๔": "4",
+        "๕": "5",
+        "๖": "6",
+        "๗": "7",
+        "๘": "8",
+        "๙": "9",
     })
 
-    # 零宽字符
     ZERO_WIDTH_CHARS = r"\u200B\u200C\u200D\uFEFF"
-
-    # 噪声标签：如 [laugh]、(noise)、{breath}
     BRACKET_PATTERN = r"\[[^\]]*\]|\([^\)]*\)|\{[^\}]*\}"
 
-    # 1. Unicode NFC normalization (VERY IMPORTANT)
+    # 1. Unicode NFC normalization
     text = unicodedata.normalize("NFC", text)
 
-    # 2. Remove annotation inside [], (), {}
+    # 2. Remove annotation
     text = re.sub(BRACKET_PATTERN, "", text)
 
-    # 3. 删除 '#' 字符
+    # 3. Remove '#' only
     text = text.replace("#", "")
 
-    # 4. 移除零宽字符
+    # 4. Remove zero-width chars
     text = re.sub(f"[{ZERO_WIDTH_CHARS}]", "", text)
 
-    # 5. 英文数字 → 泰文数字
+    # 5. Thai digits → ASCII digits
     text = text.translate(EN2TH_DIGITS)
 
-    # 6. 仅保留泰文字符（含泰国数字），其余统统删除
-    text = re.sub(r"[^\u0E00-\u0E7F]", "", text)
+    # 6. Keep only Thai chars + digits
+    text = re.sub(r"[^\u0E00-\u0E7F0-9]", "", text)
 
-    # 7. 再次 NFC，保证组合字符顺序一致
+    # 7. Final NFC (safety)
     text = unicodedata.normalize("NFC", text)
+
+    # ======== CER 用：字符级空格化（唯一新增）========
+    text = " ".join([ch for ch in text if ch.strip() != ""])
 
     return text
 

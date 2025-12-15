@@ -1,26 +1,29 @@
 import regex as re
 
 # -----------------------------
-# 沙特阿拉伯口语规范化
+# saudi normalization
 # -----------------------------
 def normalize(text: str) -> str:
     if text is None:
         return ""
 
-    # 移除变音符号
+    # Remove punctuation
+    text = re.sub(r"[\p{P}\p{S}]", "", text)
+
+    # Remove diacritics
     text = re.sub(r"[\u064b-\u0652]", "", text)
 
-    # 统一常见字形
+    # Normalize similar chars
     text = re.sub(r"[إأآٱ]", "ا", text)
     text = re.sub(r"ى", "ي", text)
     text = re.sub(r"ة", "ه", text)
     text = re.sub(r"ؤ", "و", text)
     text = re.sub(r"ئ]", "ي", text)
 
-    # 去掉拉长符
+    # Remove tatweel
     text = re.sub(r"ـ", "", text)
 
-    # 规整空白
+    # Normalize whitespace
     text = re.sub(r"\s+", " ", text)
 
     return text

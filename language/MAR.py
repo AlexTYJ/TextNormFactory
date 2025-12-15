@@ -3,25 +3,37 @@ import regex as re
 
 def normalize(text: str) -> str:
     """
-    摩洛哥阿拉伯语文本规范化流程（参考公开榜单）：
-    1. 移除重音符号。
-    2. 仅保留阿拉伯字母与数字，规整空格。
-    3. 将东阿数字、全角数字转为半角。
-    4. 统一常见方言写法。
+    https://github.com/Natural-Language-Processing-Elm/open_universal_arabic_asr_leaderboard/blob/main/eval.py
+
+    Arabic text normalization:
+    1. Remove punctuation
+    2. Remove diacritics
+    3. Eastern Arabic numerals to Western Arabic numerals
     """
-    # 去除阿拉伯语重音符号（Fatha、Damma 等）
-    diacritics = r"[\u064B-\u0652]"
+    # Remove punctuation
+    # punctuation = r'[!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~،؛؟]'
+    # text = re.sub(punctuation, "", text)
+
+    text = re.sub(r'[\u060C\u061B\u061F\u066A-\u066D\u06D4\.\,\!\?\:\;\-\_\(\)\[\]\"\'\/\\،؛؟…“”«»]', '', text)
+
+    # Remove diacritics
+    diacritics = r"[\u064B-\u0652]"  # Arabic diacritical marks (Fatha, Damma, etc.)
     text = re.sub(diacritics, "", text)
 
-    # 仅保留阿拉伯字母与数字
+    # allow only arabics & numbers
     text = re.sub(r"[^\p{Arabic}0-9]+", " ", text).strip()
 
-    # 规整多余空格
+    # Normalize multiple whitespace characters into a single space
     text = re.sub(r"\s\s+", " ", text)
 
+    # Remove punctuation and symbols
+    text = re.sub(r"[\p{P}\p{S}]", "", text)
+
     """
-    Hamza/Madda 等字形归一会影响语义，
-    建议仅在评测阶段启用，训练语料请谨慎使用。
+    Normalize Hamzas and Maddas
+    afraid of it imfluencing the meaning of sentences, 
+    we only adopt it in evaluation,
+    instead of training text
     """
     # text = re.sub("پ", "ب", text)
     # text = re.sub("ڤ", "ف", text)
@@ -31,7 +43,7 @@ def normalize(text: str) -> str:
     # text = re.sub(r"[ئ]", "ي", text)
     # text = re.sub(r"[ء]", "", text)
 
-    # 全角数字 → 半角数字
+    # Transliterate Eastern Arabic numerals to Western Arabic numerals
     fullwidth_digits = str.maketrans(
         "０１２３４５６７８９",
         "0123456789"
@@ -46,20 +58,21 @@ def normalize(text: str) -> str:
 
     text = re.sub(r'\u0640\u0651\u0653\u0654\u0655\u061C\u066B\u066C\u0671', '', text)  
     """
-    \u0640: 拉长符 tatweel
-    \u0651: 重音符（辅音强调）
-    \u0653: Maddah Above（长元音）
-    \u0654: Hamza Above
-    \u061C: 文字方向控制符
-    \u0655: Hamza Below
-    \u066B: 阿拉伯小数点
-    \u066C: 阿拉伯千分位分隔符
-    \u0671: Alif Wasla（宗教文本常见）
+    \u0640: tatweel
+    \u0651: consonant emphasis
+    \u0653: Maddah Above (vowels, combination)
+    \u0654: Hamza Above (vowels, combination)
+    \u061C: direction indicator
+    \u0655: Hamza Below (vowel, combination)
+    \u066B: Arabic Decimal Separator
+    \u066C: Arabic Thousands Separator
+    \u0671: Alif Wasla (used in Quran)
     """    
 
-    # 摩洛哥方言常见变体统一（按使用频率持续扩展，长词优先）
+    #    摩洛哥方言常见变体统一（持续补充中，越常用越靠前）
+    #    这些替换顺序很重要，先处理长的再处理短的
     norm_map = {
-        # 经典阿语 → 摩洛哥口语常见写法
+        # 经典阿拉伯语 → 摩洛哥口语常见变形
         "إن شاء الله": "انشاءالله",
         "إن شاءالله": "انشاءالله",
         "ما شاء الله": "ماشاءالله",
@@ -99,33 +112,33 @@ def normalize(text: str) -> str:
         "سمح": "سمحلي", "سمحلي": "سمحلي",
         
 
-        # ق 常被写作 گ
+        # ق often written as گ (Moroccan)
         "گ": "ق",
 
-        # ڭ → ق（/g/ 的本地写法）
+        # ڭ → ق (Moroccan letter for /g/)
         "ڭ": "ق",
 
-        # چ → ش（部分地区读作 ش）
+        # چ → ش or ك depending on region; 常统一为 ش
         "چ": "ش",
 
-        # ّ（Shadda）直接去掉
+        # ّ (shadda) often removed
         "ّ": "",
 
-        # 统一 Alef 写法
+        # Normalize Alef forms
         "أ": "ا",
         "إ": "ا",
         "آ": "ا",
 
-        # 圆塔（ة）→ ه
+        # taa marbuta → ha
         "ة": "ه",
 
-        # Yaa 变体
+        # yaa variations
         "ى": "ي",
 
-        # 常见 Darija 助词/短语
+        # Common Darija particles
         "ماغاديش": "ما غاديش",
         "غادي": "غادي",
-        "بزاف": "بزاف",  # 保留
+        "بزاف": "بزاف",  # keep
         "شحال": "شحال",
         "علاش": "علاش",
         "فين": "فين",

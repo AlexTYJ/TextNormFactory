@@ -12,7 +12,7 @@ def normalize(text: str) -> str:
     - 移除 Tatweel (ـ)。
     - 移除零宽不连接符 (ZWNJ)。
     - 移除 <> 及其内部的字符（标签）。
-    - 标点符号由通用模块统一处理。
+    - 移除标点符号。
     - 东方阿拉伯数字转换为西方阿拉伯数字。
     - 规范化空格。
     
@@ -28,13 +28,13 @@ def normalize(text: str) -> str:
     text = re.sub(patt_tashkeel, '', text)
 
     # 规范化波斯语字母
-    text = re.sub('پ', 'ب', text)  # 波斯语 Pe → 阿拉伯语 Ba
-    text = re.sub('ڤ', 'ف', text)  # 波斯语 Ve → 阿拉伯语 Fa
+    text = re.sub('پ', 'ب', text)  # Persian Pe to Arabic Ba
+    text = re.sub('ڤ', 'ف', text)  # Persian Ve to Arabic Fa
 
-    # 规范化 Hamza 的各种形式
-    text = re.sub(r'[أإآ]', 'ا', text)  # Hamza 在 Alif 上的写法
-    text = re.sub(r'[ؤ]', 'و', text)    # Hamza 在 Waw 上的写法
-    text = re.sub(r'[ئ]', 'ي', text)    # Hamza 在 Yeh 上的写法
+    # 规范化 Hamza 的各种形式为 Alif
+    text = re.sub(r'[أإآ]', 'ا', text)  # Hamza on Alif variants
+    text = re.sub(r'[ؤ]', 'و', text)    # Hamza on Waw
+    text = re.sub(r'[ئ]', 'ي', text)    # Hamza on Yeh
 
     # 过滤犹豫/思考词（如 "ااا" 或 "أأأ" 等，已统一为 "ا"）
     text = re.sub(r'ااا+', '', text)
@@ -53,6 +53,11 @@ def normalize(text: str) -> str:
     text = re.sub(r'<[^>]*>', '', text)
     text = re.sub(r'\[[^]]*\]', '', text)
     
+    # 移除所有标点符号（Unicode 类别 P）和符号（Unicode 类别 S）
+    # \p{P} 匹配所有标点符号
+    # \p{S} 匹配所有符号
+    text = re.sub(r'[\p{P}\p{S}]', '', text)
+
     # 东方阿拉伯数字转换为西方阿拉伯数字
     eastern_to_western_numerals = {
         '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', 

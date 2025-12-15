@@ -21,12 +21,12 @@ def arabic_text_normalize(text):
         # ==== 呼语 / 引起注意 ====
         'يا', 'وي', 'وَيْ', 'وييي', 'ألو', 'لك',
 
-        # ==== 方言填充词 ====
+        # ==== 方言 filler ====
         # 黎凡特
         'شو', 'هيك',
         # 马格里布
         'هاك', 'باه', 'هاو', 'ياودي', 'هاديك',
-        # 海湾方言
+        # 海湾
         'زين', 'عد', 'هاه',
 
         # ==== 拖时间 / 强调 ====
@@ -36,18 +36,21 @@ def arabic_text_normalize(text):
         'ششش', 'هههه', 'مممم'
     }
     
+    stop_words = {
+        'ااا', 'إيه', 'إممم', 'طيب', 'أمم', 'آ', 'آه', 'امم', 'ممم', 'آه', 'يا', 'أوه', 'وَيْ', 'آها', 'إي', 'ششش', 'هيه'
+    }
 
-    # 备用的停用词集合（按需求扩展）
+    # stopwords = {
     #     'اا', 'ااا', 'ام', 'أمم', 'إممم', 'امم', 'ممم', 'آ', 'آه', 'آها', 'اه', 'إيه', 'إي',
     #     'طيب', 'يا', 'أوه', 'وَيْ', 'ششش', 'هيه', 'ه', 'او', 'يعني', 'حاجة', 'بص', 'شوف',
     #     'حسنا', 'اوكي', 'ماشي', 'ايوا', 'ها', 'تمام', 'خلاص', 'كويس'
     # }
 
-    # 归一化拖长的声音与笑声
-    long_aaa_re = re.compile(r'ا{3,}')         # 连续的 ا
-    long_hhh_re = re.compile(r'ه{3,}')         # 连续的 ه（哈哈声）
-    long_mmm_re = re.compile(r'م{3,}')         # 连续的 م（嗯声）
-    long_alif_re = re.compile(r'آ{2,}')        # 连续的 آ
+    # normalizing stretched notes, laugh
+    long_aaa_re = re.compile(r'ا{3,}')         # اااا
+    long_hhh_re = re.compile(r'ه{3,}')         # هههه
+    long_mmm_re = re.compile(r'م{3,}')         # مممم
+    long_alif_re = re.compile(r'آ{2,}')        # آآآ
 
     if isinstance(text, str):
         text = text.split()
@@ -56,7 +59,7 @@ def arabic_text_normalize(text):
 
     filtered = []
     for w in text:
-        # 之前会在此处去除标点，现由 ALL.py 统一处理
+        # w = remove(w, punctuations=True)
 
         w = long_aaa_re.sub('', w)
         w = long_hhh_re.sub('', w)
@@ -71,25 +74,37 @@ def arabic_text_normalize(text):
 
 def normalize(text: str) -> str:
     """
-    阿尔及利亚阿拉伯语文本标准化步骤（参考公开榜单）：
-    1. 移除重音符号。
-    2. 统一 Hamza/Madda 及波斯字母扩展。
-    3. 只保留阿拉伯字母和数字，并规整空格。
-    4. 将东阿数字、全角数字映射为西阿数字。
+    https://github.com/Natural-Language-Processing-Elm/open_universal_arabic_asr_leaderboard/blob/main/eval.py
+
+    Arabic text normalization:
+    1. Remove punctuation
+    2. Remove diacritics
+    3. Eastern Arabic numerals to Western Arabic numerals
     """
-    # 移除阿拉伯语重音符号（Fatha、Damma 等）
-    diacritics = r"[\u064B-\u0652]"
+    # Remove punctuation
+    # punctuation = r'[!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~،؛؟]'
+    # text = re.sub(punctuation, "", text)
+
+    text = re.sub(r'[\u060C\u061B\u061F\u066A-\u066D\u06D4\.\,\!\?\:\;\-\_\(\)\[\]\"\'\/\\،؛؟…“”«»]', '', text)
+
+    # Remove diacritics
+    diacritics = r"[\u064B-\u0652]"  # Arabic diacritical marks (Fatha, Damma, etc.)
     text = re.sub(diacritics, "", text)
     
-    # 仅保留阿拉伯字母与数字
+    # allow only arabics & numbers
     text = re.sub(r"[^\p{Arabic}0-9]+", " ", text).strip()
 
-    # 规范化多余空格
+    # Normalize multiple whitespace characters into a single space
     text = re.sub(r"\s\s+", " ", text)
 
+    # Remove punctuation and symbols
+    text = re.sub(r"[\p{P}\p{S}]", "", text)
+
     """
-    Hamza、Madda 与波斯字母的归一化会影响语义，
-    建议仅在评测阶段启用，如需用于训练请自行评估。
+    Normalize Hamzas and Maddas
+    afraid of it imfluencing the meaning of sentences, 
+    we only adopt it in evaluation,
+    instead of training text
     """
     text = re.sub("پ", "ب", text)
     text = re.sub("ڤ", "ف", text)
@@ -99,9 +114,9 @@ def normalize(text: str) -> str:
     text = re.sub(r"[ئ]", "ي", text)
     text = re.sub(r"[ء]", "", text)
 
-    text = re.sub(r'\u0640', '', text)      # 去掉拉长线 tatweel
+    text = re.sub(r'\u0640', '', text)      # remove tatweel
 
-    # 将全角数字转为半角
+    # Transliterate Eastern Arabic numerals to Western Arabic numerals
     fullwidth_digits = str.maketrans(
         "０１２３４５６７８９",
         "0123456789"
@@ -116,18 +131,20 @@ def normalize(text: str) -> str:
 
     text = re.sub(r'\u0640\u0651\u0653\u0654\u0655\u061C\u066B\u066C\u0671', '', text)  
     """
-    \u0640: tatweel（拉长符）
-    \u0651: Shadda（辅音强调）
-    \u0653: Maddah Above（长元音组合）
-    \u0654: Hamza Above
-    \u061C: 文字方向控制符
-    \u0655: Hamza Below
-    \u066B: 阿拉伯小数点
-    \u066C: 阿拉伯千位分隔符
-    \u0671: Alif Wasla（宗教文本常见）
-    """
-    # 如需进一步兼容 U+069C，可手动替换为 U+0634
-    # 可启用：return text.replace('ڜ', 'ش')
+    \u0640: tatweel
+    \u0651: consonant emphasis
+    \u0653: Maddah Above (vowels, combination)
+    \u0654: Hamza Above (vowels, combination)
+    \u061C: direction indicator
+    \u0655: Hamza Below (vowel, combination)
+    \u066B: Arabic Decimal Separator
+    \u066C: Arabic Thousands Separator
+    \u0671: Alif Wasla (used in Quran)
+    """    
+    # remove tatweel, and unseen char
+
+    # normalize U+069C -> U+0634 (maghrebi to MSA)
+    # return text.replace('ڜ', 'ش')
 
     return text
 

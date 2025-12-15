@@ -45,8 +45,15 @@ MALAY_SPELL_VARIANTS: Dict[str, str] = {
     "besarbesar": "besar-besar", "cantikcantik": "cantik-cantik",  # 补全重复词连字符
 }
 
-# 需额外清理的不可见字符（ALL.py 已统一处理标点/符号）
-INVISIBLE_CHARS_PATTERN = re.compile(r"[\u00A0\u00AD\u200B-\u200D\u2060-\u2064\u206A-\u206F\uFEFF]")
+# 需移除的特殊字符（扩展覆盖马来语场景）
+SPECIAL_CHARS_PATTERN = re.compile(
+    r'[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E'  # 基础标点
+    r'\u060C\u061B\u061F\u066A-\u066D\u06D4'  # 阿拉伯标点（避免残留）
+    r'\u2000-\u206F\u2E00-\u2E7F'  # 通用标点符号
+    r'\u00A0\u00AD\u2010-\u2015\u2026\u2030-\u2039'  # 特殊空白/符号
+    r'\uFEFF\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B-\uFF40\uFF5B-\uFF65'  # 全角符号
+    r'\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Presentation}\p{Emoji_Component}]'  # 表情符号
+)
 
 # 仅保留马来语拉丁字母、数字和空格
 VALID_CHARS_PATTERN = re.compile(r"[^\p{Latin}0-9\s]+")
@@ -58,22 +65,22 @@ FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
 
 def normalize(text: str) -> str:
     """
-    马来语（MYS）ASR 规范化流程（完整版）：
-    1. 清理零宽字符/特殊空格等不可见符号。
-    2. 仅保留拉丁字母、数字与空格。
-    3. 归一化数字（东阿数字/全角数字 → 西阿数字）。
-    4. 标准化口语缩写（长词优先，避免误替换）。
-    5. 合并常见拼写变体与外来词。
-    6. 保持马来语 reduplication（词重叠）特性。
-    7. 统一货币/度量等常见表达。
-    8. 规整大小写与空白。
+    Malay (MYS) text normalization for ASR (comprehensive version):
+    1. Remove all punctuation, special symbols and emojis
+    2. Clean invalid characters (keep only Latin Malay + numbers + spaces)
+    3. Normalize numerals (Eastern Arabic → Western, fullwidth → halfwidth)
+    4. Standardize colloquial abbreviations (priority: longer phrases first)
+    5. Unify spelling variants (compound words, loanwords, typos)
+    6. Preserve Malay reduplication (core linguistic feature)
+    7. Clean extra whitespace and normalize case
+    8. Fix common Malay grammar/spelling issues
     """
     # 空文本保护
     if not text or text.strip() == "":
         return ""
 
-    # Step 1: 清理零宽字符与特殊空格（标点已由 ALL.py 统一清除）
-    text = INVISIBLE_CHARS_PATTERN.sub(" ", text)
+    # Step 1: 移除所有特殊字符、标点、表情符号
+    text = SPECIAL_CHARS_PATTERN.sub("", text)
 
     # Step 2: 仅保留马来语有效字符（拉丁字母、数字、空格）
     text = VALID_CHARS_PATTERN.sub(" ", text).strip()

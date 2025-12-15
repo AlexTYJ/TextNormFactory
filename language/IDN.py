@@ -456,7 +456,7 @@ def normalize(text: str) -> str:
        (目的: ASR常将数字识别为数字，统一为词汇形式提高一致性)
     5. 印尼语特化处理: 缩写标准化
        (目的: 处理印尼语特有的语言现象，标准化表达形式)
-    6. 字符规范化: URL移除、大小写统一、空格清理
+    6. 字符规范化: 标点移除、大小写统一、空格清理
        (目的: 确保评测时字符和单词级别的准确对齐)
 
     参数:
@@ -493,6 +493,7 @@ def normalize(text: str) -> str:
 
     # 步骤6: 字符规范化
     text = URL_PATTERN.sub(" ", text)  # 移除URL
+    text = re.sub(r"[^\w\s]", " ", text)  # 移除标点符号，只保留字母数字空格
     text = text.translate(FULLWIDTH_DIGITS_MAP)  # 全角数字转半角
     text = text.lower()  # 统一为小写
     text = re.sub(r"\s+", " ", text).strip()  # 清理多余空格
@@ -503,42 +504,42 @@ def normalize(text: str) -> str:
 if __name__ == "__main__":
     # 印尼语ASR文本规范化综合测试用例 (TSV增强版)
     test_cases = [
-        # A 组：TSV 货币处理（35 种货币映射）
+        # Group A: TSV货币处理 (35种货币映射)
         ("A01", "Harganya Rp 50000", "harga lima puluh ribu rupiah"),
         ("A02", "Saya punya $100 dan €50", "saya punya seratus dollar amerika serikat dan lima puluh euro"),
         ("A03", "Harga 2 kg gandum £15", "harga dua kilogram gram lima belas pounds"),
         ("A04", "Ongkos ¥1000 untuk jasa", "ongkos seribu yen untuk jasa"),
 
-        # B 组：TSV 度量衡处理（114 种单位映射）
+        # Group B: TSV度量衡处理 (114种单位映射)
         ("B01", "Beratnya 2.5 kg dan panjang 100 cm", "beratnya dua koma lima kilogram dan panjang seratus centimeter"),
         ("B02", "Suhu 37°C dan tekanan 101.3 kpa", "suhu tiga puluh tujuh celsius dan tekanan seratus satu koma tiga kilopascal"),
         ("B03", "Kecepatan 100 km/jam dan daya 500 hp", "kecepatan seratus kilometer per jam dan daya lima ratus tenaga kuda"),
         ("B04", "Waktu 5 menit dan frekuensi 60 hz", "waktu lima menit dan frekuensi enam puluh hertz"),
 
-        # C 组：TSV 时区处理（印尼语和国际时区）
+        # Group C: TSV时区处理 (印尼语和国际时区)
         ("C01", "Jam 14:30 WIB di Jakarta", "jam empat belas lewat tiga puluh menit Waktu Indonesia Barat di jakarta"),
         ("C02", "Meeting jam 09:00 WITA di Bali", "meeting jam sembilan Waktu Indonesia Tengah di bali"),
         ("C03", "Acara jam 13:45 WIT di Papua", "acara jam tiga belas lewat empat puluh lima menit Waktu Indonesia Timur di papua"),
         ("C04", "Broadcast jam 20:00 GMT London", "broadcast jam dua puluh lewat nol menit G reenwich Mean Time london"),
 
-        # D 组：日期处理
+        # Group D: 日期处理
         ("D01", "Tanggal (25/12) adalah Natal", "tanggal dua puluh lima Desember adalah natal"),
         ("D02", "Acara pada (14/08/1945)", "acara pada empat belas Agustus satu ribu sembilan ratus empat puluh lima"),
 
-        # E 组：ASR 噪音处理
+        # Group E: ASR噪音处理
         ("E01", "[laughter] Halo [cough] pak", "halo bapak"),
         ("E02", "Ehm saya tidak tahu <unk>", "saya tidak tahu"),
 
-        # F 组：印尼语缩写处理
+        # Group F: 印尼语缩写处理
         ("F01", "Pak mau pergi ga ke kantor?", "bapak mau pergi tidak ke kantor"),
         ("F02", "Skrng lg di rmh, blm sdh", "sekarang lagi di rumah belum sudah"),
 
-        # G 组：复杂 TSV 混合场景
+        # Group G: 复杂TSV混合场景
         ("G01", "[noise] Ongkos Rp 25500 ehm untuk taksi 5 km", "ongkos dua puluh lima ribu lima ratus rupiah untuk taksi lima kilometer"),
         ("G02", "Berat 1.5 kg $20 jam 10:30 WIB", "berat satu koma lima kilogram dua puluh dollar amerika serikat jam sepuluh lewat tiga puluh menit Waktu Indonesia Barat"),
         ("G03", "Suhu 25°C panjang 50 m tinggi 2 m", "suhu dua puluh lima celsius panjang lima puluh meter tinggi dua meter"),
 
-        # H 组：边界情况
+        # Group H: 边界情况
         ("H01", "", ""),
         ("H02", "   ", ""),
         ("H03", "!@#$%", ""),

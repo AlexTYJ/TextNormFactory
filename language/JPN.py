@@ -3,59 +3,53 @@ import unicodedata
 
 
 def normalize(text: str) -> str:
-    # 先进行 Unicode NFKC 正规化
+    # Unicode NFKC normalization
     text = unicodedata.normalize("NFKC", text)
 
-    # 删除各类括号内的标注 [], (), {}
+    # Remove annotation inside [], (), {}
     text = re.sub(r"\[[^\]]*\]|\([^\)]*\)|\{[^\}]*\}", "", text)
 
-    # 阿拉伯数字替换为日语数字
+    # 中文数字 → ASCII 数字
     digit_map = {
-        "0": "零",
-        "1": "一",
-        "2": "二",
-        "3": "三",
-        "4": "四",
-        "5": "五",
-        "6": "六",
-        "7": "七",
-        "8": "八",
-        "9": "九",
+        "零": "0",
+        "一": "1",
+        "二": "2",
+        "三": "3",
+        "四": "4",
+        "五": "5",
+        "六": "6",
+        "七": "7",
+        "八": "8",
+        "九": "9",
     }
     text = text.translate(str.maketrans(digit_map))
 
+    # 仅保留：日文 + 英文 + 数字
     japanese_english_only_pattern = re.compile(
         r"[^"
-        r"a-zA-Z"  # 英文字母
-        r"\u3040-\u309F"  # 平假名
-        r"\u30A0-\u30FF"  # 片假名
-        r"\u31F0-\u31FF"  # 片假名扩展
-        r"\uFF65-\uFF9F"  # 半角片假名
-        r"\u4E00-\u9FFF"  # CJK 基本区
-        r"\u3400-\u4DBF"  # CJK 扩展 A
-        r"\U00020000-\U0002A6DF"  # CJK 扩展 B
-        r"\U0002A700-\U0002B73F"  # CJK 扩展 C
-        r"\U0002B740-\U0002B81F"  # CJK 扩展 D
-        r"\U0002B820-\U0002CEAF"  # CJK 扩展 E
-        r"\U0002CEB0-\U0002EBEF"  # CJK 扩展 F
-        r"\U00030000-\U0003134F"  # CJK 扩展 G
-        r"\U00031350-\U000323AF"  # CJK 扩展 H
-        r"\uF900-\uFAFF"  # CJK 兼容汉字
-        r"\u3005"  # 々
-        r"\u3006"  # 〆
-        r"\u3007"  # 〇
+        r"a-zA-Z0-9"
+        r"\u3040-\u309F"      # 平假名
+        r"\u30A0-\u30FF"      # 片假名
+        r"\u31F0-\u31FF"
+        r"\uFF65-\uFF9F"
+        r"\u4E00-\u9FFF"
+        r"\u3400-\u4DBF"
+        r"\uF900-\uFAFF"
+        r"\u3005\u3006\u3007"
         r"]"
     )
 
-    text = japanese_english_only_pattern.sub("", text)
+    text = japanese_english_only_pattern.sub("", text).replace("・", "")
 
+    # 大写
     text = text.upper()
+
+    # ======== 唯一新增的一句（CER 用）========
+    text = " ".join([ch for ch in text if ch.strip() != ""])
 
     return text
 
 
 if __name__ == "__main__":
     import sys
-
-    ori_text = sys.argv[1]
-    print(normalize(ori_text))
+    print(normalize(sys.argv[1]))
